@@ -10,7 +10,7 @@ namespace karateclubb
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new InscriptionForm());
+            Application.Run(new InscriptionCompetitionForm());
         }
     }
 }

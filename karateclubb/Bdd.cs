@@ -97,4 +97,48 @@ public class Bdd
             }
         }
     }
+
+    public void FillDataGridViewWithMembres(ComboBox comboBox)
+    {
+        using (var connection = OpenConnection())
+        {
+            if (connection != null)
+            {
+                var command = new MySqlCommand("SELECT num_licence, nom_membre, prenom_membre FROM membre", connection);
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    comboBox.Items.Add(new
+                    {
+                        Id = reader.GetInt32("num_licence"),
+                        FullName = $"{reader.GetString("nom_membre")} {reader.GetString("prenom_membre")}"
+                    });
+                    comboBox.DisplayMember = "NomComplet";
+                    comboBox.ValueMember = "NumLicence";
+                }
+            }
+        }
+    }
+
+    public void FillDataGridViewWithCompetitions(ComboBox comboBox)
+    {
+        using (var connection = OpenConnection())
+        {
+            if (connection != null)
+            {
+                var command = new MySqlCommand("SELECT num_competition, num_club FROM competition", connection);
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    comboBox.Items.Add(new
+                    {
+                        Id = reader.GetInt32("num_competition"),
+                        Name = reader.GetInt32("num_club")
+                    });
+                    comboBox.DisplayMember = "Nom";
+                    comboBox.ValueMember = "NumLicence";
+                }
+            }
+        }
+    }
 }
