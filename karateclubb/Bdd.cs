@@ -230,9 +230,41 @@ public class Bdd
         }
     }
 
+    public bool DeleteInscriptionsByMembre(int numLicence)
+    {
+        using (var connection = OpenConnection())
+        {
+            if (connection == null) return false;
+
+            string query = "DELETE FROM inscription WHERE num_licence = @NumLicence";
+
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@NumLicence", numLicence);
+
+                try
+                {
+                    int result = command.ExecuteNonQuery();
+                    return result >= 0;
+                }
+                catch (MySqlException ex)
+                {
+                    MessageBox.Show($"Une erreur s'est produite lors de la suppression des inscriptions: {ex.Message}", "Erreur de Suppression", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+        }
+    }
+
+
 
     public bool DeleteMembre(int numLicence)
     {
+        if (!DeleteInscriptionsByMembre(numLicence))
+        {
+            return false; 
+        }
+
         using (var connection = OpenConnection())
         {
             if (connection == null) return false;
@@ -246,15 +278,7 @@ public class Bdd
                 try
                 {
                     int result = command.ExecuteNonQuery();
-                    if (result > 0)
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        MessageBox.Show("La suppression du membre a échoué.", "Erreur de Suppression", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return false;
-                    }
+                    return result > 0;
                 }
                 catch (MySqlException ex)
                 {
@@ -264,6 +288,7 @@ public class Bdd
             }
         }
     }
+
 
 
     public bool UpdateCompetition(int numCompetition, string nomCompetition, DateTime dateCompetition, int numClub)

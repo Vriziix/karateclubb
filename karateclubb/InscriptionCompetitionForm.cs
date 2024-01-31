@@ -19,6 +19,12 @@ namespace karateclubb
         {
             InitializeComponent();
 
+            membresDataGridView.CellClick += DataGridView_CellClick;
+            competitionsDataGridView.CellClick += DataGridView_CellClick;
+            membresDataGridView.CellValueChanged += DataGridView_CellValueChanged;
+            competitionsDataGridView.CellValueChanged += DataGridView_CellValueChanged;
+
+
             refreshButton.Text = "Rafraîchir";
             refreshButton.Size = new Size(100, 30);
             refreshButton.Location = new Point(650, 500);
@@ -27,7 +33,7 @@ namespace karateclubb
             this.Controls.Add(refreshButton);
 
             this.BackColor = Color.MintCream;
-            this.Size = new Size(800, 600); 
+            this.Size = new Size(800, 600);
             this.Text = "INSCRIPTION À UNE COMPÉTITION";
 
             ConfigurerDataGridView(membresDataGridView, 50, 40, 300, 200);
@@ -61,14 +67,14 @@ namespace karateclubb
 
         private void LoadMembres()
         {
-            membresDataGridView.DataSource = null; 
-            membresDataGridView.DataSource = bdd.GetMembresDataTable(); 
+            membresDataGridView.DataSource = null;
+            membresDataGridView.DataSource = bdd.GetMembresDataTable();
         }
 
         private void LoadCompetitions()
         {
-            competitionsDataGridView.DataSource = null; 
-            competitionsDataGridView.DataSource = bdd.GetCompetitionsDataTable(); 
+            competitionsDataGridView.DataSource = null;
+            competitionsDataGridView.DataSource = bdd.GetCompetitionsDataTable();
         }
 
         private void ConfigurerDataGridView(DataGridView dataGridView, int x, int y, int width, int height)
@@ -76,20 +82,15 @@ namespace karateclubb
             dataGridView.Location = new Point(x, y);
             dataGridView.Size = new Size(width, height);
             dataGridView.ReadOnly = false;
-            dataGridView.AllowUserToAddRows = false; 
-            dataGridView.AllowUserToDeleteRows = true; 
+            dataGridView.AllowUserToAddRows = false;
+            dataGridView.AllowUserToDeleteRows = true;
             dataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
             if (dataGridView.Columns["deleteColumn"] == null)
             {
-                var deleteButtonColumn = new DataGridViewButtonColumn
-                {
-                    Name = "deleteColumn",
-                    Text = "Supprimer",
-                    UseColumnTextForButtonValue = true,
-                    HeaderText = "Actions"
-                };
+                var deleteButtonColumn = new DataGridViewButtonColumn { Name = "deleteColumn", Text = "Supprimer", UseColumnTextForButtonValue = true, HeaderText = "Actions" };
                 dataGridView.Columns.Add(deleteButtonColumn);
+
             }
         }
 
@@ -136,6 +137,7 @@ namespace karateclubb
 
             membresDataGridView.CellValueChanged += DataGridView_CellValueChanged;
             competitionsDataGridView.CellValueChanged += DataGridView_CellValueChanged;
+            membresDataGridView.CellClick += DataGridView_CellClick;
 
             if (e.RowIndex >= 0)
             {
@@ -156,7 +158,7 @@ namespace karateclubb
                     {
                         string nomCompetition = dataGridView["nom_competition", e.RowIndex].Value.ToString();
                         DateTime dateCompetition = Convert.ToDateTime(dataGridView["date_competition", e.RowIndex].Value);
-                        int numClub = Convert.ToInt32(dataGridView["num_club", e.RowIndex].Value); 
+                        int numClub = Convert.ToInt32(dataGridView["num_club", e.RowIndex].Value);
                         bdd.UpdateCompetition(id, nomCompetition, dateCompetition, numClub);
                     }
                 }
@@ -188,7 +190,7 @@ namespace karateclubb
                     }
                     else
                     {
-                        return; 
+                        return;
                     }
 
                     if (success)
