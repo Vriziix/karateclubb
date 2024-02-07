@@ -110,6 +110,8 @@ public class Bdd
         }
     }
 
+
+
     public DataTable GetCompetitionsDataTable()
     {
         using (var connection = OpenConnection())
@@ -318,6 +320,72 @@ public class Bdd
             }
         }
     }
+
+    public DataTable GetJudgesForCompetition(int competitionId)
+    {
+        using (var connection = OpenConnection())
+        {
+            if (connection == null) return null;
+
+            var command = new MySqlCommand(
+                "SELECT j.num_entraîneur, j.num_jury FROM juge j WHERE j.num_competition = @CompetitionId", connection);
+            command.Parameters.AddWithValue("@CompetitionId", competitionId);
+
+            var adapter = new MySqlDataAdapter(command);
+            var dt = new DataTable();
+            adapter.Fill(dt);
+            return dt;
+        }
+    }
+
+
+    public DataTable GetCompetitionScores(int competitionId)
+    {
+        using (var connection = OpenConnection())
+        {
+            if (connection == null) return null;
+
+            var command = new MySqlCommand(
+                @"SELECT
+    i.num_licence,
+    m.nom_membre,
+    m.prenom_membre,
+    n1.note AS NoteJuge1,
+    n2.note AS NoteJuge2,
+    n3.note AS NoteJuge3,
+    n4.note AS NoteJuge4,
+    n5.note AS NoteJuge5,
+    (n1.note + n2.note + n3.note + n4.note + n5.note - LEAST(n1.note, n2.note, n3.note, n4.note, n5.note) - GREATEST(n1.note, n2.note, n3.note, n4.note, n5.note)) AS NoteGlobale
+    FROM 
+        inscription i
+    JOIN 
+        membre m ON i.num_licence = m.num_licence
+    JOIN 
+        note n1 ON i.num_licence = n1.num_licence AND n1.num_jury = 11 AND n1.num_competition = i.num_competition
+    JOIN 
+        note n2 ON i.num_licence = n2.num_licence AND n2.num_jury = 22 AND n2.num_competition = i.num_competition
+    JOIN 
+        note n3 ON i.num_licence = n3.num_licence AND n3.num_jury = 33 AND n3.num_competition = i.num_competition
+    JOIN 
+        note n4 ON i.num_licence = n4.num_licence AND n4.num_jury = 44 AND n4.num_competition = i.num_competition
+    JOIN 
+        note n5 ON i.num_licence = n5.num_licence AND n5.num_jury = 55 AND n5.num_competition = i.num_competition
+    WHERE 
+        i.num_competition = @CompetitionId
+    ORDER BY 
+        NoteGlobale DESC;
+    ", connection);
+
+            command.Parameters.AddWithValue("@CompetitionId", competitionId);
+
+            var adapter = new MySqlDataAdapter(command);
+            var dt = new DataTable();
+            adapter.Fill(dt);
+            return dt;
+        }
+    }
+
+
 
 
     public bool DeleteCompetition(int numCompetition)
