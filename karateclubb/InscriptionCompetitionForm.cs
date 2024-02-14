@@ -8,9 +8,7 @@ namespace karateclubb
     {
         private DataGridView membresDataGridView = new DataGridView();
         private DataGridView competitionsDataGridView = new DataGridView();
-        private DataGridView scoresDataGridView = new DataGridView();
-        private DataGridView judgesDataGridView = new DataGridView();
-        private ComboBox competitionsComboBox = new ComboBox();
+        private Button showDetailsButton = new Button();
         private Button inscrireButton = new Button();
         private Button nouveauMembreButton = new Button();
         private Button annulerButton = new Button();
@@ -21,6 +19,7 @@ namespace karateclubb
         public InscriptionCompetitionForm()
         {
             InitializeComponent();
+            ConfigurerShowDetailsButton();
 
             membresDataGridView.CellClick += DataGridView_CellClick;
             competitionsDataGridView.CellClick += DataGridView_CellClick;
@@ -35,19 +34,10 @@ namespace karateclubb
             refreshButton.Click += RefreshButton_Click;
             this.Controls.Add(refreshButton);
 
-            ConfigurerDataGridView(scoresDataGridView, 50, 300, 700, 200);
-            this.Controls.Add(scoresDataGridView);
-
-            ConfigurerComboBox(competitionsComboBox, 400, 10);
-            this.Controls.Add(competitionsComboBox);
-            LoadCompetitionsToComboBox();
-
-            ConfigurerDataGridView(judgesDataGridView, 50, 500, 300, 200);
-            this.Controls.Add(judgesDataGridView);
-
             this.BackColor = Color.MintCream;
             this.Size = new Size(800, 600);
             this.Text = "INSCRIPTION À UNE COMPÉTITION";
+
 
             ConfigurerDataGridView(membresDataGridView, 50, 40, 300, 200);
             ConfigurerDataGridView(competitionsDataGridView, 400, 40, 300, 200);
@@ -75,19 +65,30 @@ namespace karateclubb
         {
             LoadMembres();
             LoadCompetitions();
-            ReloadCompetitionNotes();
-
-            if (competitionsComboBox.SelectedValue is int competitionId)
-            {
-                LoadJudgesForSelectedCompetition(competitionId);
-                ReloadCompetitionNotes();
-            }
 
             MessageBox.Show("Les données ont été rafraîchies.");
         }
 
+        private void ConfigurerShowDetailsButton()
+        {
+            showDetailsButton.Text = "Afficher les détails";
+            showDetailsButton.Location = new Point(10, 10); 
+            showDetailsButton.Size = new Size(150, 30);
+            showDetailsButton.Click += ShowDetailsButton_Click;
+            this.Controls.Add(showDetailsButton);
+        }
 
-        private void LoadMembres()
+        private void ShowDetailsButton_Click(object sender, EventArgs e)
+        {
+            using (CompetitionsDetailsForm detailsForm = new CompetitionsDetailsForm())
+            {
+                detailsForm.ShowDialog();
+            }
+        }
+
+
+
+    private void LoadMembres()
         {
             membresDataGridView.DataSource = null;
             membresDataGridView.DataSource = bdd.GetMembresDataTable();
@@ -99,12 +100,6 @@ namespace karateclubb
             competitionsDataGridView.DataSource = bdd.GetCompetitionsDataTable();
         }
 
-    private void LoadJudgesForSelectedCompetition(int competitionId)
-    {
-        judgesDataGridView.DataSource = null;
-        judgesDataGridView.DataSource = bdd.GetJudgesForCompetition(competitionId);
-        // Configurez ici les noms des colonnes si nécessaire
-    }
 
     private void ConfigurerDataGridView(DataGridView dataGridView, int x, int y, int width, int height)
         {
@@ -237,54 +232,6 @@ namespace karateclubb
             }
         }
 
-        private void ReloadCompetitionNotes()
-        {
-            if (competitionsComboBox.SelectedValue is int competitionId)
-            {
-                LoadCompetitionScores(competitionId);
-            }
-        }
-
-
-
-        private void ConfigurerComboBox(ComboBox comboBox, int x, int y)
-        {
-            comboBox.Location = new Point(x, y);
-            comboBox.Size = new Size(300, 21);
-            comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            comboBox.SelectedIndexChanged += CompetitionsComboBox_SelectedIndexChanged;
-        }
-
-        private void LoadCompetitionsToComboBox()
-        {
-            var competitions = bdd.GetCompetitionsDataTable();
-            competitionsComboBox.DisplayMember = "nom_competition";
-            competitionsComboBox.ValueMember = "num_competition";
-            competitionsComboBox.DataSource = competitions;
-        }
-
-        private void CompetitionsComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (competitionsComboBox.SelectedValue is int competitionId)
-            {
-                LoadCompetitionScores(competitionId);
-            }
-        }
-
-        private void LoadCompetitionScores(int competitionId)
-        {
-            scoresDataGridView.DataSource = null;
-            scoresDataGridView.DataSource = bdd.GetCompetitionScores(competitionId);
-
-            if (scoresDataGridView.Columns["note_globale"] != null)
-            {
-                scoresDataGridView.Columns["note_globale"].HeaderText = "Note Globale";
-            }
-            else
-            {
-                MessageBox.Show("La colonne 'note_globale' n'existe pas dans les données récupérées.");
-            }
-        }
 
 
 

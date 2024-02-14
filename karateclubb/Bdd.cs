@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Windows.Forms;
 using karateclubb;
 using MySql.Data.MySqlClient;
@@ -101,27 +103,6 @@ public class Bdd
             if (connection != null)
             {
                 var command = new MySqlCommand("SELECT num_licence, nom_membre, prenom_membre FROM membre", connection);
-                var adapter = new MySqlDataAdapter(command);
-                var dt = new DataTable();
-                adapter.Fill(dt);
-                return dt;
-            }
-            return null;
-        }
-    }
-
-
-
-    public DataTable GetCompetitionsDataTable()
-    {
-        using (var connection = OpenConnection())
-        {
-            if (connection != null)
-            {
-                var command = new MySqlCommand(
-                    "SELECT c.num_competition, c.date_competition, cl.nom_club " +
-                    "FROM competition c " +
-                    "JOIN club cl ON c.num_club = cl.num_club", connection);
                 var adapter = new MySqlDataAdapter(command);
                 var dt = new DataTable();
                 adapter.Fill(dt);
@@ -321,73 +302,6 @@ public class Bdd
         }
     }
 
-    public DataTable GetJudgesForCompetition(int competitionId)
-    {
-        using (var connection = OpenConnection())
-        {
-            if (connection == null) return null;
-
-            var command = new MySqlCommand(
-                "SELECT j.num_entraîneur, j.num_jury FROM juge j WHERE j.num_competition = @CompetitionId", connection);
-            command.Parameters.AddWithValue("@CompetitionId", competitionId);
-
-            var adapter = new MySqlDataAdapter(command);
-            var dt = new DataTable();
-            adapter.Fill(dt);
-            return dt;
-        }
-    }
-
-
-    public DataTable GetCompetitionScores(int competitionId)
-    {
-        using (var connection = OpenConnection())
-        {
-            if (connection == null) return null;
-
-            var command = new MySqlCommand(
-                @"SELECT
-    i.num_licence,
-    m.nom_membre,
-    m.prenom_membre,
-    n1.note AS NoteJuge1,
-    n2.note AS NoteJuge2,
-    n3.note AS NoteJuge3,
-    n4.note AS NoteJuge4,
-    n5.note AS NoteJuge5,
-    (n1.note + n2.note + n3.note + n4.note + n5.note - LEAST(n1.note, n2.note, n3.note, n4.note, n5.note) - GREATEST(n1.note, n2.note, n3.note, n4.note, n5.note)) AS NoteGlobale
-    FROM 
-        inscription i
-    JOIN 
-        membre m ON i.num_licence = m.num_licence
-    JOIN 
-        note n1 ON i.num_licence = n1.num_licence AND n1.num_jury = 11 AND n1.num_competition = i.num_competition
-    JOIN 
-        note n2 ON i.num_licence = n2.num_licence AND n2.num_jury = 22 AND n2.num_competition = i.num_competition
-    JOIN 
-        note n3 ON i.num_licence = n3.num_licence AND n3.num_jury = 33 AND n3.num_competition = i.num_competition
-    JOIN 
-        note n4 ON i.num_licence = n4.num_licence AND n4.num_jury = 44 AND n4.num_competition = i.num_competition
-    JOIN 
-        note n5 ON i.num_licence = n5.num_licence AND n5.num_jury = 55 AND n5.num_competition = i.num_competition
-    WHERE 
-        i.num_competition = @CompetitionId
-    ORDER BY 
-        NoteGlobale DESC;
-    ", connection);
-
-            command.Parameters.AddWithValue("@CompetitionId", competitionId);
-
-            var adapter = new MySqlDataAdapter(command);
-            var dt = new DataTable();
-            adapter.Fill(dt);
-            return dt;
-        }
-    }
-
-
-
-
     public bool DeleteCompetition(int numCompetition)
     {
         using (var connection = OpenConnection())
@@ -410,6 +324,163 @@ public class Bdd
                     MessageBox.Show($"Une erreur s'est produite lors de la suppression de la compétition: {ex.Message}", "Erreur de Suppression", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return false;
                 }
+            }
+        }
+    }
+
+    public DataTable GetCompetitionsDataTable()
+    {
+        DataTable competitions = new DataTable();
+        using (var connection = OpenConnection())
+        {
+            string query = @"
+            SELECT c.num_competition, cl.nom_club 
+            FROM competition c
+            JOIN club cl ON c.num_club = cl.num_club";
+            using (var adapter = new MySqlDataAdapter(query, connection))
+            {
+                adapter.Fill(competitions);
+            }
+        }
+        return competitions;
+    }
+
+    public DataTable LoadMembresEtNotesParCompetition(int numCompetition)
+    {
+        DataTable membresNotes = new DataTable();
+        using (var connection = OpenConnection())
+        {
+            string query = @"
+            SELECT i.num_licence, m.nom_membre, m.prenom_membre, 
+            (SELECT GROUP_CONCAT(n.note ORDER BY n.note SEPARATOR ',') FROM note n WHERE n.num_licence = i.num_licence AND n.num_competition = i.num_competition) AS notes
+            FROM inscription i
+            JOIN membre m ON i.num_licence = m.num_licence
+            WHERE i.num_competition = @NumCompetition";
+
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@NumCompetition", numCompetition);
+                using (var adapter = new MySqlDataAdapter(command))
+                {
+                    adapter.Fill(membresNotes);
+                }
+            }
+        }
+
+        if (!membresNotes.Columns.Contains("note_globale"))
+        {
+            membresNotes.Columns.Add("note_globale", typeof(double));
+        }
+
+        foreach (DataRow row in membresNotes.Rows)
+        {
+
+            var notesStringArray = row["notes"].ToString().Split(',');
+            var notes = new List<float>();
+
+            foreach (var noteString in notesStringArray)
+            {
+                if (int.TryParse(noteString, out int note))
+                {
+                    notes.Add(note);
+                }
+            }
+
+            notes.Sort();
+            if (notes.Count > 2)
+            {
+                notes.RemoveAt(0);
+                notes.RemoveAt(notes.Count - 1);
+            }
+
+            double average = notes.Any() ? notes.Average() : 0;
+
+            Console.WriteLine($"Nombre de notes après traitement : {notes.Count}");
+            if (notes.Any()) Console.WriteLine($"Moyenne calculée : {notes.Average()}");
+
+            row["note_globale"] = average;
+
+            int numLicence = Convert.ToInt32(row["num_licence"]);
+            UpdateNoteGlobaleInDb(numLicence, numCompetition, average);
+        }
+
+        return membresNotes;
+    }
+
+    public DataTable LoadMembresParCompetition(int numCompetition)
+    {
+        DataTable membres = new DataTable();
+        using (var connection = OpenConnection())
+        {
+            string query = @"
+            SELECT m.nom_membre, m.prenom_membre, c.nom_club, n.note
+            FROM inscription i
+            JOIN membre m ON i.num_licence = m.num_licence
+            JOIN club c ON m.num_club = c.num_club
+            JOIN note n ON m.num_licence = n.num_licence
+            WHERE i.num_competition = @NumCompetition";
+
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@NumCompetition", numCompetition);
+                using (var adapter = new MySqlDataAdapter(command))
+                {
+                    adapter.Fill(membres);
+                }
+            }
+        }
+        return membres;
+    }
+
+    public void UpdateNoteGlobale(int numCompetition)
+    {
+        DataTable membresNotes = LoadMembresEtNotesParCompetition(numCompetition);
+
+        foreach (DataRow row in membresNotes.Rows)
+        {
+            List<double> notes = new List<double>();
+
+            for (int i = 1; i <= 5; i++)
+            {
+                string noteColumnName = $"note{i}";
+                if (membresNotes.Columns.Contains(noteColumnName) && row[noteColumnName] != DBNull.Value)
+                {
+                    notes.Add(Convert.ToDouble(row[noteColumnName]));
+                }
+            }
+
+            notes.Sort();
+            if (notes.Count > 2)
+            {
+                notes.RemoveAt(0);
+                notes.RemoveAt(notes.Count - 1); 
+            }
+
+            double average = notes.Any() ? notes.Average() : 0;
+
+            int numLicence = Convert.ToInt32(row["num_licence"]);
+            UpdateNoteGlobaleInDb(numLicence, numCompetition, average);
+        }
+    }
+
+  
+
+
+    private void UpdateNoteGlobaleInDb(int numLicence, int numCompetition, double noteGlobale)
+    {
+        using (var connection = OpenConnection())
+        {
+            string query = @"
+            UPDATE inscription
+            SET note_globale = @NoteGlobale
+            WHERE num_licence = @NumLicence AND num_competition = @NumCompetition";
+
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@NoteGlobale", noteGlobale);
+                command.Parameters.AddWithValue("@NumLicence", numLicence);
+                command.Parameters.AddWithValue("@NumCompetition", numCompetition);
+                command.ExecuteNonQuery();
             }
         }
     }

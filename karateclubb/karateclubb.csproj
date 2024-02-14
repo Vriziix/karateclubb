@@ -100,13 +100,18 @@
   <ItemGroup>
     <Compile Include="Bdd.cs" />
     <Compile Include="Club.cs" />
+    <Compile Include="CompetitionsDetailsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CompetitionsDetailsForm.Designer.cs">
+      <DependentUpon>CompetitionsDetailsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="InscriptionCompetitionForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="InscriptionCompetitionForm.Designer.cs">
       <DependentUpon>InscriptionCompetitionForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Tableau.cs" />
     <Compile Include="PlaceholderTextBox.cs">
       <SubType>Component</SubType>
     </Compile>
